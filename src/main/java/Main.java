@@ -34,7 +34,7 @@ public class Main {
         connectionsFilePath = "src/main/resources/connections.txt";
 //        connectionsFilePath = scanner.nextLine();
         HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath, "connections");
-        DefaultDirectedWeightedGraph connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent);
+        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent);
         String temp;
         boolean flag = true;
         // debugging
@@ -49,7 +49,7 @@ public class Main {
 //            }
 //        }
         // debugging
-        endCity = "G2b";
+        endCity = "C3";
         flag = true;
 //        while(flag) {
 //            System.out.println("Enter name of end city");
@@ -96,7 +96,7 @@ public class Main {
 //            }
 //        }
 
-        aStarAlgorithm(connectionsGraph, startCity, endCity);
+        aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity);
 
 
     }
@@ -207,20 +207,61 @@ public class Main {
         return graph;
     }
 
-    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, String startCity, String endCity) {
-        PriorityQueue<>
-        ArrayList<String> closed = new ArrayList<>();
-        BreadthFirstIterator<String, DefaultWeightedEdge> iterator = new BreadthFirstIterator<>(graph, startCity);
-//        while(iterator.hasNext()) {
-//            open.add(iterator.next());
-//        }
-//        System.out.println("Open array: \n" + open.toString());
+    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, HashMap<String, ArrayList<String>> locationsContent, String startCity, String endCity) {
+        HeuristicComparator comparator = new HeuristicComparator();
+        PriorityQueue<QueueNode> open = new PriorityQueue<>(30, comparator);
+        ArrayList<QueueNode> closed = new ArrayList<>();
+        // f-value = distance from starting node + heuristic value
+        open.add(new QueueNode(startCity, graph.edgesOf(startCity), 0, 0));
 
+        // pop value from Priority Queue (QueueNode)
+        // checking if empty to know when to stop
+        while(!(open.isEmpty())) {
+            QueueNode node = open.poll();
+            System.out.println("Popped node: " + node.getVertex());
+            // looping over edges of popped node to see which node we can go to next
+            for(DefaultWeightedEdge edge : node.getEdges()) {
+                String newCityName = graph.getEdgeTarget(edge);
+                // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
+                double newG = node.getG() + graph.getEdgeWeight(edge);
+                QueueNode newNode = new QueueNode(newCityName, graph.edgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                // checking if node is in closed
+                boolean nodePresent = false;
+                for(QueueNode i : closed) {
+                    if(i.getVertex().equals(newNode.getVertex())) {
+                        nodePresent = true;
+                    }
+                }
+                if(!nodePresent) {
+                    System.out.println("Node was NOT present. Adding node: " + newNode.getVertex());
+                    open.add(newNode);
+                } else {
+                    System.out.println("Node WAS present: " + newNode.getVertex());
+                }
+            }
+            // checking if node is in closed (this time so we don't add it to closed a million times and mess up the path)
+            boolean nodePresent = false;
+            for(QueueNode i : closed) {
+                if(i.getVertex().equals(node.getVertex())) {
+                    nodePresent = true;
+                }
+            }
+            if(!nodePresent) {
+                closed.add(node);
+            }
+        }
+        // TODO: Needs work, just rudimentary for testing purposes
+        printOptimalPath(closed);
     }
 
-    double straightLineHeuristic() {
+    private static double straightLineHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
+        return euclideanDistance(locationsContent.get(source), locationsContent.get(target));
+    }
 
-        return 0;
+    private static void printOptimalPath(ArrayList<QueueNode> path) {
+        for(QueueNode node : path) {
+            System.out.println(node.getVertex());
+        }
     }
 
 }
