@@ -213,18 +213,19 @@ public class Main {
         ArrayList<QueueNode> closed = new ArrayList<>();
         // f-value = distance from starting node + heuristic value
         open.add(new QueueNode(startCity, graph.edgesOf(startCity), 0, 0));
-
+        System.out.println("Open edges of starting node: " + graph.outgoingEdgesOf(startCity).toString());
         // pop value from Priority Queue (QueueNode)
         // checking if empty to know when to stop
         while(!(open.isEmpty())) {
             QueueNode node = open.poll();
             System.out.println("Popped node: " + node.getVertex());
             // looping over edges of popped node to see which node we can go to next
-            for(DefaultWeightedEdge edge : node.getEdges()) {
+            for(DefaultWeightedEdge edge : graph.outgoingEdgesOf(node.getVertex())) {
+//                System.out.println("Looking at edge: " + edge.toString());
                 String newCityName = graph.getEdgeTarget(edge);
                 // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
                 double newG = node.getG() + graph.getEdgeWeight(edge);
-                QueueNode newNode = new QueueNode(newCityName, graph.edgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
                 // checking if node is in closed
                 boolean nodePresent = false;
                 for(QueueNode i : closed) {
@@ -233,21 +234,26 @@ public class Main {
                     }
                 }
                 if(!nodePresent) {
-                    System.out.println("Node was NOT present. Adding node: " + newNode.getVertex());
+//                    System.out.println("Node was NOT present. Adding node: " + newNode.getVertex());
                     open.add(newNode);
                 } else {
-                    System.out.println("Node WAS present: " + newNode.getVertex());
+//                    System.out.println("Node WAS present: " + newNode.getVertex());
                 }
-            }
-            // checking if node is in closed (this time so we don't add it to closed a million times and mess up the path)
-            boolean nodePresent = false;
-            for(QueueNode i : closed) {
-                if(i.getVertex().equals(node.getVertex())) {
-                    nodePresent = true;
+//                // debugging
+//                System.out.println("Printing out open:");
+//                for(QueueNode openNode : open) {
+//                    System.out.println(openNode.getVertex());
+//                }
+                // checking if node is in closed (this time so we don't add it to closed a million times and mess up the path)
+                nodePresent = false;
+                for(QueueNode i : closed) {
+                    if(i.getVertex().equals(node.getVertex())) {
+                        nodePresent = true;
+                    }
                 }
-            }
-            if(!nodePresent) {
-                closed.add(node);
+                if(!nodePresent) {
+                    closed.add(node);
+                }
             }
         }
         // TODO: Needs work, just rudimentary for testing purposes
