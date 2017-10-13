@@ -224,34 +224,36 @@ public class Main {
 //                System.out.println("Looking at edge: " + edge.toString());
                 String newCityName = graph.getEdgeTarget(edge);
                 // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
+                // checking if node is in closed or already in open
+                boolean nodePresentInClosed = false;
+                for(QueueNode i : closed) {
+                    if(i.getVertex().equals(newCityName)) {
+                        nodePresentInClosed = true;
+                        break;
+                    }
+                }
+                boolean nodePresentInOpen = false;
+                for(QueueNode i : open) {
+                    if(i.getVertex().equals(newCityName)) {
+                        nodePresentInOpen = true;
+                        break;
+                    }
+                }
                 double newG = node.getG() + graph.getEdgeWeight(edge);
                 QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
-                // checking if node is in closed
-                boolean nodePresent = false;
-                for(QueueNode i : closed) {
-                    if(i.getVertex().equals(newNode.getVertex())) {
-                        nodePresent = true;
-                    }
-                }
-                if(!nodePresent) {
+                if((!nodePresentInClosed) && (!nodePresentInOpen)) {
 //                    System.out.println("Node was NOT present. Adding node: " + newNode.getVertex());
                     open.add(newNode);
-                } else {
-//                    System.out.println("Node WAS present: " + newNode.getVertex());
                 }
-//                // debugging
-//                System.out.println("Printing out open:");
-//                for(QueueNode openNode : open) {
-//                    System.out.println(openNode.getVertex());
-//                }
+                
                 // checking if node is in closed (this time so we don't add it to closed a million times and mess up the path)
-                nodePresent = false;
+                nodePresentInClosed = false;
                 for(QueueNode i : closed) {
                     if(i.getVertex().equals(node.getVertex())) {
-                        nodePresent = true;
+                        nodePresentInClosed = true;
                     }
                 }
-                if(!nodePresent) {
+                if(!nodePresentInClosed) {
                     closed.add(node);
                 }
             }
