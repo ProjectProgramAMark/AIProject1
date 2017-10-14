@@ -1,6 +1,5 @@
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
-import org.jgrapht.traverse.BreadthFirstIterator;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -38,7 +37,7 @@ public class Main {
         String temp;
         boolean flag = true;
         // debugging
-        startCity = "A1";
+        startCity = "D4";
 //        while(flag) {
 //            System.out.println("Enter name of starting city");
 //            startCity = scanner.nextLine();
@@ -49,7 +48,7 @@ public class Main {
 //            }
 //        }
         // debugging
-        endCity = "C3";
+        endCity = "G5";
         flag = true;
 //        while(flag) {
 //            System.out.println("Enter name of end city");
@@ -213,62 +212,135 @@ public class Main {
         ArrayList<QueueNode> closed = new ArrayList<>();
         // f-value = distance from starting node + heuristic value
         open.add(new QueueNode(startCity, graph.edgesOf(startCity), 0, 0));
-        System.out.println("Open edges of starting node: " + graph.outgoingEdgesOf(startCity).toString());
+
+        // debugging
+        // System.out.println("Open edges of starting node: " + graph.outgoingEdgesOf(startCity).toString());
+
         // pop value from Priority Queue (QueueNode)
         // checking if empty to know when to stop
         while(!(open.isEmpty())) {
             QueueNode node = open.poll();
-            System.out.println("Popped node: " + node.getVertex());
+            // debugging
+//            System.out.println("Popped node: " + node.getVertex());
+
+            // checking to see if we've reached the target node
+            if(node.getVertex().equals(endCity)) {
+                double g = (node.getG() + graph.getEdgeWeight(graph.getEdge(node.getVertex(), endCity)));
+                // I use "g" for "f" in this case because the straight line heuristic is 0 since we're at end node
+                QueueNode endNode = new QueueNode(endCity, graph.outgoingEdgesOf(endCity), g,  g);
+                closed.add(endNode);
+                break;
+            }
+            // This differs from open because it takes the QueueNodes from the edges of the newly popped node and figures out
+            // which node has the min f-value so it can go into the open queue
+            PriorityQueue<QueueNode> toGoToOpen = new PriorityQueue<>(11, comparator);
             // looping over edges of popped node to see which node we can go to next
+            // creating list of the possible nodes current node can go to
             for(DefaultWeightedEdge edge : graph.outgoingEdgesOf(node.getVertex())) {
 //                System.out.println("Looking at edge: " + edge.toString());
                 String newCityName = graph.getEdgeTarget(edge);
+
+                double newG = node.getG() + graph.getEdgeWeight(edge);
+                // checking if possible node has any edges if can go to or if it's a dead end
+                if(!(graph.outgoingEdgesOf(newCityName).isEmpty())) {
+                    QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                    toGoToOpen.add(newNode);
+                }
+            }
+
+            // this while loop looks in toGoToOpen for the node with min f-value that also is not in open or closed
+            boolean nodePresentInClosed;
+            boolean nodePresentInOpen;
+            boolean flag = true;
+            while(flag) {
+                // getting node with min f-value from toGoToOpen priority queue
+                QueueNode newNode = toGoToOpen.poll();
                 // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
-                // checking if node is in closed or already in open
-                boolean nodePresentInClosed = false;
-                for(QueueNode i : closed) {
-                    if(i.getVertex().equals(newCityName)) {
+                // checking if possible node is in closed or already in open
+                nodePresentInClosed = false;
+                for(QueueNode j : closed) {
+                    if(j.getVertex().equals(newNode.getVertex())) {
                         nodePresentInClosed = true;
                         break;
                     }
                 }
-                boolean nodePresentInOpen = false;
-                for(QueueNode i : open) {
-                    if(i.getVertex().equals(newCityName)) {
+                nodePresentInOpen = false;
+                for(QueueNode j : open) {
+                    if(j.getVertex().equals(newNode.getVertex())) {
                         nodePresentInOpen = true;
                         break;
                     }
                 }
-                double newG = node.getG() + graph.getEdgeWeight(edge);
-                QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
                 if((!nodePresentInClosed) && (!nodePresentInOpen)) {
-//                    System.out.println("Node was NOT present. Adding node: " + newNode.getVertex());
+                    flag = false;
                     open.add(newNode);
                 }
-                
-                // checking if node is in closed (this time so we don't add it to closed a million times and mess up the path)
-                nodePresentInClosed = false;
-                for(QueueNode i : closed) {
-                    if(i.getVertex().equals(node.getVertex())) {
-                        nodePresentInClosed = true;
-                    }
-                }
-                if(!nodePresentInClosed) {
-                    closed.add(node);
+            }
+
+            // checking if current node is in closed (this time so we don't add it to closed a million times and mess up the path)
+            nodePresentInClosed = false;
+            for(QueueNode i : closed) {
+                if(i.getVertex().equals(node.getVertex())) {
+                    nodePresentInClosed = true;
                 }
             }
+            if(!nodePresentInClosed) {
+                closed.add(node);
+            }
+
         }
         // TODO: Needs work, just rudimentary for testing purposes
-        printOptimalPath(closed);
+         printOptimalPath(closed);
+        // printStepByStep(closed);
     }
 
     private static double straightLineHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
         return euclideanDistance(locationsContent.get(source), locationsContent.get(target));
     }
 
+    private static void fewestLinksHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
+
+    }
+
     private static void printOptimalPath(ArrayList<QueueNode> path) {
-        for(QueueNode node : path) {
-            System.out.println(node.getVertex());
+        System.out.print("Optimal Path: ");
+        for(int i = 0; i < path.size(); i++) {
+            System.out.print(path.get(i).getVertex());
+            if(!(path.size()-1 == i)) {
+                System.out.print(" -> ");
+            }
+        }
+    }
+
+    private static void printStepByStep(ArrayList<QueueNode> path) {
+        for(int i = 0; i < path.size(); i++) {
+            System.out.print("Current Optimal Path: ");
+            for(int j = 0; j <= i; j++) {
+                System.out.print(path.get(j).getVertex());
+                if(!(j == i)) {
+                    System.out.print(" -> ");
+                }
+            }
+            System.out.println();
+            System.out.println("Distance traveled: " + Double.toString(path.get(i).getG()));
+            if(!((path.size() - 1) == i)) {
+                System.out.println("Best move is to: " + path.get(i+1).getVertex());
+            }
+
+            // pressing enter to continue
+            boolean flag = true;
+            Scanner scanner = new Scanner(System.in);
+            String enter;
+            while(flag) {
+                System.out.println("Press the \"ENTER\" key to continue.");
+                enter = scanner.nextLine();
+                if(enter.isEmpty()) {
+                    flag = false;
+                } else {
+                    System.out.println("Sorry, you must ONLY press ENTER to continue. Try again!");
+                }
+            }
+
         }
     }
 
