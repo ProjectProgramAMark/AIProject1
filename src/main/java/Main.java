@@ -78,7 +78,7 @@ public class Main {
 //            }
 //        }
         // debugging
-        solutionType = 0;
+        solutionType = 1;
         flag = true;
 //        while(flag) {
 //            System.out.println("Enter type of solution you want shown (\"step by step\" or \"optimal path\")");
@@ -95,7 +95,12 @@ public class Main {
 //            }
 //        }
 
-        aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity);
+        if(heuristic == 0) {
+            aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
+        } else {
+            System.out.println("Fewest links implementation goes here");
+            aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
+        }
 
 
     }
@@ -206,7 +211,7 @@ public class Main {
         return graph;
     }
 
-    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, HashMap<String, ArrayList<String>> locationsContent, String startCity, String endCity) {
+    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, HashMap<String, ArrayList<String>> locationsContent, String startCity, String endCity, int heuristic, int solutionType) {
         HeuristicComparator comparator = new HeuristicComparator();
         PriorityQueue<QueueNode> open = new PriorityQueue<>(30, comparator);
         ArrayList<QueueNode> closed = new ArrayList<>();
@@ -226,7 +231,7 @@ public class Main {
             // checking to see if we've reached the target node
             if(node.getVertex().equals(endCity)) {
                 double g = (node.getG() + graph.getEdgeWeight(graph.getEdge(node.getVertex(), endCity)));
-                // I use "g" for "f" in this case because the straight line heuristic is 0 since we're at end node
+                // I use "g" for "f" in this case because the heuristic cost is 0 since we're at end node
                 QueueNode endNode = new QueueNode(endCity, graph.outgoingEdgesOf(endCity), g,  g);
                 closed.add(endNode);
                 break;
@@ -241,10 +246,17 @@ public class Main {
                 String newCityName = graph.getEdgeTarget(edge);
 
                 double newG = node.getG() + graph.getEdgeWeight(edge);
-                // checking if possible node has any edges if can go to or if it's a dead end
+                // checking if possible node has any edges it can go to or if it's a dead end
                 if(!(graph.outgoingEdgesOf(newCityName).isEmpty())) {
-                    QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
-                    toGoToOpen.add(newNode);
+                    if(heuristic == 0) {
+                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                        toGoToOpen.add(newNode);
+                    } else {
+                        // fewest links heuristic is literally just adding 1 to the distance traveled for some reason, so just
+                        // adding 1 instead of making a whole other function
+                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + 1);
+                        toGoToOpen.add(newNode);
+                    }
                 }
             }
 
@@ -253,12 +265,20 @@ public class Main {
             boolean nodePresentInOpen;
             boolean flag = true;
             while(flag) {
+                QueueNode newNode;
                 // getting node with min f-value from toGoToOpen priority queue
-                QueueNode newNode = toGoToOpen.poll();
+                if(!(toGoToOpen.isEmpty())) {
+                    newNode = toGoToOpen.poll();
+                } else {
+                    flag = false;
+                    break;
+                }
+//                 System.out.println("New node: " + newNode);
                 // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
                 // checking if possible node is in closed or already in open
                 nodePresentInClosed = false;
                 for(QueueNode j : closed) {
+//                    System.out.println("printing hereeeeeee");
                     if(j.getVertex().equals(newNode.getVertex())) {
                         nodePresentInClosed = true;
                         break;
@@ -287,19 +307,17 @@ public class Main {
             if(!nodePresentInClosed) {
                 closed.add(node);
             }
-
         }
-        // TODO: Needs work, just rudimentary for testing purposes
-         printOptimalPath(closed);
-        // printStepByStep(closed);
+        if(solutionType == 0) {
+            printStepByStep(closed);
+        } else {
+            printOptimalPath(closed);
+        }
     }
 
+    // honestly just a wrapper around the euclidean distance function
     private static double straightLineHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
         return euclideanDistance(locationsContent.get(source), locationsContent.get(target));
-    }
-
-    private static void fewestLinksHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
-
     }
 
     private static void printOptimalPath(ArrayList<QueueNode> path) {
