@@ -32,8 +32,7 @@ public class Main {
         // debugging
         connectionsFilePath = "src/main/resources/connections.txt";
 //        connectionsFilePath = scanner.nextLine();
-        HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath, "connections");
-        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent);
+
         String temp;
         boolean flag = true;
         // debugging
@@ -60,7 +59,7 @@ public class Main {
 //            }
 //        }
         // debugging
-        heuristic = 0;
+        heuristic = 1;
         flag = true;
 
 //        while(flag) {
@@ -78,7 +77,7 @@ public class Main {
 //            }
 //        }
         // debugging
-        solutionType = 1;
+        solutionType = 0;
         flag = true;
 //        while(flag) {
 //            System.out.println("Enter type of solution you want shown (\"step by step\" or \"optimal path\")");
@@ -94,13 +93,9 @@ public class Main {
 //                System.out.println("Not a valid option. Please try again.");
 //            }
 //        }
-
-        if(heuristic == 0) {
-            aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
-        } else {
-            System.out.println("Fewest links implementation goes here");
-            aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
-        }
+        HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath, "connections");
+        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent, heuristic);
+        aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
 
 
     }
@@ -178,7 +173,7 @@ public class Main {
 
 
     // Builds the graph based on connections from connections.txt and weights from locations.txt
-    private static DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> buildGraph(HashMap<String, ArrayList<String>> connectionsContent, HashMap<String, ArrayList<String>> locationsContent) {
+    private static DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> buildGraph(HashMap<String, ArrayList<String>> connectionsContent, HashMap<String, ArrayList<String>> locationsContent, int heuristic) {
         DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph = new DefaultDirectedWeightedGraph<>(DefaultWeightedEdge.class);
         double edgeWeight;
         for(HashMap.Entry<String, ArrayList<String>> entry : connectionsContent.entrySet()) {
@@ -193,8 +188,13 @@ public class Main {
                 }
                 if(!(graph.containsEdge(startingVertex, value))) {
                     DefaultWeightedEdge edge = graph.addEdge(startingVertex, value);
-                    edgeWeight = euclideanDistance(locationsContent.get(startingVertex), locationsContent.get(value));
-                    graph.setEdgeWeight(edge, edgeWeight);
+                    // for the "fewest links" heuristic, the only edge weights are 1, so need to take that into account
+                    if(heuristic == 0) {
+                        edgeWeight = euclideanDistance(locationsContent.get(startingVertex), locationsContent.get(value));
+                        graph.setEdgeWeight(edge, edgeWeight);
+                    } else {
+                        graph.setEdgeWeight(edge, 1);
+                    }
                 } else {
                     System.out.println("For some reason this graph already contains that edge? Line 160");
                 }
@@ -216,24 +216,33 @@ public class Main {
         PriorityQueue<QueueNode> open = new PriorityQueue<>(30, comparator);
         ArrayList<QueueNode> closed = new ArrayList<>();
         // f-value = distance from starting node + heuristic value
-        open.add(new QueueNode(startCity, graph.edgesOf(startCity), 0, 0));
+        // adding starting node
+        QueueNode startingNode = new QueueNode(startCity, graph.edgesOf(startCity), 0, 0);
+        LinkedList<QueueNode> path = new LinkedList<>();
+        path.add(startingNode);
+        startingNode.setPath(path);
+        open.add(startingNode);
 
-        // debugging
-        // System.out.println("Open edges of starting node: " + graph.outgoingEdgesOf(startCity).toString());
+        /* testing this out
+        adding path pathway, and at beginning of each while loop once we've got the open node
+        I check if the edge between the last node in "path" and this new node exist
+        if not, that means we've backtracked and I keep removing from "path" until that path exists */
 
         // pop value from Priority Queue (QueueNode)
         // checking if empty to know when to stop
         while(!(open.isEmpty())) {
             QueueNode node = open.poll();
-            // debugging
-//            System.out.println("Popped node: " + node.getVertex());
+            // If step by step solution selected, need to do this before proceeding
+            if(solutionType == 0) {
+                printStepByStep(node);
+            }
 
             // checking to see if we've reached the target node
             if(node.getVertex().equals(endCity)) {
-                double g = (node.getG() + graph.getEdgeWeight(graph.getEdge(node.getVertex(), endCity)));
-                // I use "g" for "f" in this case because the heuristic cost is 0 since we're at end node
-                QueueNode endNode = new QueueNode(endCity, graph.outgoingEdgesOf(endCity), g,  g);
-                closed.add(endNode);
+                closed.add(node);
+                if(solutionType == 1) {
+                    printOptimalPath(node);
+                }
                 break;
             }
             // This differs from open because it takes the QueueNodes from the edges of the newly popped node and figures out
@@ -242,7 +251,6 @@ public class Main {
             // looping over edges of popped node to see which node we can go to next
             // creating list of the possible nodes current node can go to
             for(DefaultWeightedEdge edge : graph.outgoingEdgesOf(node.getVertex())) {
-//                System.out.println("Looking at edge: " + edge.toString());
                 String newCityName = graph.getEdgeTarget(edge);
 
                 double newG = node.getG() + graph.getEdgeWeight(edge);
@@ -250,11 +258,17 @@ public class Main {
                 if(!(graph.outgoingEdgesOf(newCityName).isEmpty())) {
                     if(heuristic == 0) {
                         QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                        LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
+                        newNodePath.add(newNode);
+                        newNode.setPath(newNodePath);
                         toGoToOpen.add(newNode);
                     } else {
                         // fewest links heuristic is literally just adding 1 to the distance traveled for some reason, so just
                         // adding 1 instead of making a whole other function
                         QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + 1);
+                        LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
+                        newNodePath.add(newNode);
+                        newNode.setPath(newNodePath);
                         toGoToOpen.add(newNode);
                     }
                 }
@@ -264,7 +278,9 @@ public class Main {
             boolean nodePresentInClosed;
             boolean nodePresentInOpen;
             boolean flag = true;
-            while(flag) {
+            // while(flag) {
+            // debugging this
+            while(!(toGoToOpen.isEmpty())) {
                 QueueNode newNode;
                 // getting node with min f-value from toGoToOpen priority queue
                 if(!(toGoToOpen.isEmpty())) {
@@ -273,12 +289,10 @@ public class Main {
                     flag = false;
                     break;
                 }
-//                 System.out.println("New node: " + newNode);
                 // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
                 // checking if possible node is in closed or already in open
                 nodePresentInClosed = false;
                 for(QueueNode j : closed) {
-//                    System.out.println("printing hereeeeeee");
                     if(j.getVertex().equals(newNode.getVertex())) {
                         nodePresentInClosed = true;
                         break;
@@ -308,11 +322,6 @@ public class Main {
                 closed.add(node);
             }
         }
-        if(solutionType == 0) {
-            printStepByStep(closed);
-        } else {
-            printOptimalPath(closed);
-        }
     }
 
     // honestly just a wrapper around the euclidean distance function
@@ -320,46 +329,43 @@ public class Main {
         return euclideanDistance(locationsContent.get(source), locationsContent.get(target));
     }
 
-    private static void printOptimalPath(ArrayList<QueueNode> path) {
-        System.out.print("Optimal Path: ");
+    private static void printOptimalPath(QueueNode endNode) {
+        LinkedList<QueueNode> path = endNode.getPath();
         for(int i = 0; i < path.size(); i++) {
             System.out.print(path.get(i).getVertex());
-            if(!(path.size()-1 == i)) {
+            if(i != (path.size() - 1)) {
                 System.out.print(" -> ");
             }
         }
     }
 
-    private static void printStepByStep(ArrayList<QueueNode> path) {
+
+    private static void printStepByStep(QueueNode newNode) {
+        System.out.println("Current Optimal Path: ");
+        LinkedList<QueueNode> path = newNode.getPath();
         for(int i = 0; i < path.size(); i++) {
-            System.out.print("Current Optimal Path: ");
-            for(int j = 0; j <= i; j++) {
-                System.out.print(path.get(j).getVertex());
-                if(!(j == i)) {
-                    System.out.print(" -> ");
-                }
+            System.out.print(path.get(i).getVertex());
+            if(i != (path.size() - 1)) {
+                System.out.print(" -> ");
             }
-            System.out.println();
-            System.out.println("Distance traveled: " + Double.toString(path.get(i).getG()));
-            if(!((path.size() - 1) == i)) {
-                System.out.println("Best move is to: " + path.get(i+1).getVertex());
-            }
-
-            // pressing enter to continue
-            boolean flag = true;
-            Scanner scanner = new Scanner(System.in);
-            String enter;
-            while(flag) {
-                System.out.println("Press the \"ENTER\" key to continue.");
-                enter = scanner.nextLine();
-                if(enter.isEmpty()) {
-                    flag = false;
-                } else {
-                    System.out.println("Sorry, you must ONLY press ENTER to continue. Try again!");
-                }
-            }
-
         }
+        System.out.println();
+        System.out.println("Distance traveled: " + newNode.getG());
+
+        // pressing enter to continue
+        boolean flag = true;
+        Scanner scanner = new Scanner(System.in);
+        String enter;
+        while(flag) {
+            System.out.println("Press the \"ENTER\" key to continue.");
+            enter = scanner.nextLine();
+            if(enter.isEmpty()) {
+                flag = false;
+            } else {
+                System.out.println("Sorry, you must ONLY press ENTER to continue. Try again!");
+            }
+        }
+
     }
 
 }

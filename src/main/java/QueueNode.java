@@ -1,6 +1,7 @@
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Set;
 
 public class QueueNode {
@@ -8,6 +9,7 @@ public class QueueNode {
     private Set<DefaultWeightedEdge> edges;
     private double f;
     private double g;
+    private LinkedList<QueueNode> path;
     public QueueNode(String vertex, Set<DefaultWeightedEdge> edges, double g, double f) {
         this.vertex = vertex;
         this.edges = edges;
@@ -45,5 +47,13 @@ public class QueueNode {
 
     public void setF(double f) {
         this.f = f;
+    }
+
+    public LinkedList<QueueNode> getPath() {
+        return path;
+    }
+
+    public void setPath(LinkedList<QueueNode> path) {
+        this.path = path;
     }
 }
