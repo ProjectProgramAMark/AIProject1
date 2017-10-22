@@ -1,3 +1,5 @@
+package me.markmoussa.aiproject1;
+
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 import org.jgrapht.graph.DefaultWeightedEdge;
 
@@ -6,7 +8,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
-
 
 public class Main {
 
@@ -256,7 +257,7 @@ public class Main {
         I check if the edge between the last node in "path" and this new node exist
         if not, that means we've backtracked and I keep removing from "path" until that path exists */
 
-        // pop value from Priority Queue (QueueNode)
+        // pop value from Priority Queue (me.markmoussa.aiproject1.QueueNode)
         // checking if empty to know when to stop
         while(!(open.isEmpty())) {
             QueueNode node = open.poll();
@@ -286,6 +287,8 @@ public class Main {
                 if(!(graph.outgoingEdgesOf(newCityName).isEmpty())) {
                     if(heuristic == 0) {
                         QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                        // supressing warning for now because YOLO
+                        @SuppressWarnings("unchecked")
                         LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
                         newNodePath.add(newNode);
                         newNode.setPath(newNodePath);
@@ -294,6 +297,7 @@ public class Main {
                         // fewest links heuristic is literally just adding 1 to the distance traveled for some reason, so just
                         // adding 1 instead of making a whole other function
                         QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + 1);
+                        @SuppressWarnings("unchecked")
                         LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
                         newNodePath.add(newNode);
                         newNode.setPath(newNodePath);

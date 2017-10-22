@@ -1,3 +1,5 @@
+package me.markmoussa.aiproject1;
+
 import java.util.Comparator;
 
 public class HeuristicComparator implements Comparator<QueueNode> {
