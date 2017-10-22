@@ -19,81 +19,109 @@ public class Main {
         // getting input from user
         String locationsFilePath, connectionsFilePath;
         String startCity = null, endCity = null;
-        String[] excludedCities;
-        int heuristic;
-        int solutionType;
+        ArrayList<String> excludedCities = new ArrayList<>();
+        // default to 0 so compiler will shut up
+        int heuristic = 0;
+        int solutionType = 0;
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter full path of locations.txt");
         // debugging
-        locationsFilePath = "src/main/resources/locations.txt";
+//        locationsFilePath = "src/main/resources/locations.txt";
+        locationsFilePath = scanner.nextLine();
         HashMap<String, ArrayList<String>> locationsFileContent = readFile(locationsFilePath, "locations");
-//        locationsFilePath = scanner.nextLine();
         System.out.println("Enter full path of connections.txt");
         // debugging
-        connectionsFilePath = "src/main/resources/connections.txt";
-//        connectionsFilePath = scanner.nextLine();
+//        connectionsFilePath = "src/main/resources/connections.txt";
+        connectionsFilePath = scanner.nextLine();
 
         String temp;
         boolean flag = true;
         // debugging
-        startCity = "D4";
-//        while(flag) {
-//            System.out.println("Enter name of starting city");
-//            startCity = scanner.nextLine();
-//            if(locationsFileContent.containsKey(startCity)) {
-//                flag = false;
-//            } else {
-//                System.out.println("Sorry, that city is not in this graph. Please try again.");
-//            }
-//        }
+//        startCity = "D4";
+
+        while(flag) {
+            System.out.println("Enter name of starting city");
+            startCity = scanner.nextLine();
+            if(locationsFileContent.containsKey(startCity)) {
+                flag = false;
+            } else {
+                System.out.println("Sorry, that city is not in this graph. Please try again.");
+            }
+        }
         // debugging
-        endCity = "G5";
+//        endCity = "G5";
+
         flag = true;
-//        while(flag) {
-//            System.out.println("Enter name of end city");
-//            endCity = scanner.nextLine();
-//            if(locationsFileContent.containsKey(endCity)) {
-//                flag = false;
-//            } else {
-//                System.out.println("Sorry, that city is not in this graph. Please try again.");
-//            }
-//        }
+        while(flag) {
+            System.out.println("Enter name of end city");
+            endCity = scanner.nextLine();
+            if(locationsFileContent.containsKey(endCity)) {
+                flag = false;
+            } else {
+                System.out.println("Sorry, that city is not in this graph. Please try again.");
+            }
+        }
+
+        flag = true;
+        while(flag) {
+            System.out.println("Enter names of cities you want to exclude (end by pressing \"ENTER\")");
+            String input = scanner.nextLine();
+            if(!(input.isEmpty())) {
+                excludedCities.add(input);
+            } else if(input.equals(startCity) || input.equals(endCity)) {
+                System.out.println("Can't exclude the start city or end city. Try again");
+            } else {
+                flag = false;
+            }
+        }
+
         // debugging
-        heuristic = 1;
+//        heuristic = 1;
         flag = true;
 
-//        while(flag) {
-//            System.out.println("Enter name of heuristic to use (\"straight line distance\" or \"fewest links\")");
-//            temp = scanner.nextLine();
-//            temp = temp.toLowerCase();
-//            if(temp.equals("straight line distance")) {
-//                heuristic = 0;
-//                flag = false;
-//            } else if(temp.equals("fewest links")) {
-//                heuristic = 1;
-//                flag = false;
-//            } else {
-//                System.out.println("Not a valid option. Please try again.");
-//            }
-//        }
+        while(flag) {
+            System.out.println("Enter name of heuristic to use (\"straight line distance\" or \"fewest links\")");
+            temp = scanner.nextLine();
+            temp = temp.toLowerCase();
+            if(temp.equals("straight line distance")) {
+                heuristic = 0;
+                flag = false;
+            } else if(temp.equals("fewest links")) {
+                heuristic = 1;
+                flag = false;
+            } else {
+                System.out.println("Not a valid option. Please try again.");
+            }
+        }
         // debugging
-        solutionType = 0;
+//        solutionType = 0;
         flag = true;
-//        while(flag) {
-//            System.out.println("Enter type of solution you want shown (\"step by step\" or \"optimal path\")");
-//            temp = scanner.nextLine();
-//            temp = temp.toLowerCase();
-//            if (temp.equals("step by step")) {
-//                solutionType = 0;
-//                flag = false;
-//            } else if (temp.equals("optimal path")) {
-//                solutionType = 1;
-//                flag = false;
-//            } else {
-//                System.out.println("Not a valid option. Please try again.");
-//            }
-//        }
+        while(flag) {
+            System.out.println("Enter type of solution you want shown (\"step by step\" or \"optimal path\")");
+            temp = scanner.nextLine();
+            temp = temp.toLowerCase();
+            if (temp.equals("step by step")) {
+                solutionType = 0;
+                flag = false;
+            } else if (temp.equals("optimal path")) {
+                solutionType = 1;
+                flag = false;
+            } else {
+                System.out.println("Not a valid option. Please try again.");
+            }
+        }
         HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath, "connections");
+        for(String city : excludedCities) {
+            if(locationsFileContent.containsKey(city)) {
+                locationsFileContent.remove(city);
+            }
+            if(connectionsFileContent.containsKey(city)) {
+                connectionsFileContent.remove(city);
+            }
+            for(Map.Entry<String, ArrayList<String>> entry : connectionsFileContent.entrySet()) {
+                entry.getValue().removeIf(value -> value.equals(city));
+            }
+        }
         DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent, heuristic);
         aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
 
