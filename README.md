@@ -1,3 +1,5 @@
+**** Lambda expressions are only for Java 8 and above, MUST BE USING JAVA 9 ****
+
 RECOMMENDED:
 If you have IntelliJ IDEA IDE, simply take the "Project 1" directory and import that into IntelliJ and run.
 
