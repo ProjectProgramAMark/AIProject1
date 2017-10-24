@@ -111,7 +111,8 @@ public class Main {
                 System.out.println("Not a valid option. Please try again.");
             }
         }
-        HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath, "connections");
+        HashMap<String, ArrayList<String>> connectionsFileContent = readFile(connectionsFilePath,
+                "connections");
         for(String city : excludedCities) {
             if(locationsFileContent.containsKey(city)) {
                 locationsFileContent.remove(city);
@@ -123,7 +124,8 @@ public class Main {
                 entry.getValue().removeIf(value -> value.equals(city));
             }
         }
-        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent, locationsFileContent, heuristic);
+        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> connectionsGraph = buildGraph(connectionsFileContent,
+                locationsFileContent, heuristic);
         aStarAlgorithm(connectionsGraph, locationsFileContent, startCity, endCity, heuristic, solutionType);
 
 
@@ -143,16 +145,6 @@ public class Main {
                     ArrayList<String> splitArray = new ArrayList<>(Arrays.asList(line.split("\\s+")));
                     String city = splitArray.get(0);
                     splitArray.remove(0);
-                    // debugging
-//                    System.out.println(splitArray);
-
-                    /* Commenting this out because it helps to just keep HashMap to have ArrayList<String> to
-                     get over some weird stuff with generic types and ArrayLists
-                     Just convert to int when we actually need it instead */
-//                    ArrayList<Integer> coordinatesArray = new ArrayList<>();
-//                    for(String s: splitArray) {
-//                        coordinatesArray.add(Integer.parseInt(s));
-//                    }
                     fileContents.put(city, splitArray);
                 }
             } catch(FileNotFoundException exception) {
@@ -171,8 +163,6 @@ public class Main {
                     String city= splitArray.get(0);
                     splitArray.remove(0);
                     splitArray.remove(0);
-                    // debugging
-//                    System.out.println(splitArray);
                     fileContents.put(city, splitArray);
                 }
             } catch(FileNotFoundException exception) {
@@ -202,8 +192,10 @@ public class Main {
 
 
     // Builds the graph based on connections from connections.txt and weights from locations.txt
-    private static DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> buildGraph(HashMap<String, ArrayList<String>> connectionsContent, HashMap<String, ArrayList<String>> locationsContent, int heuristic) {
-        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph = new DefaultDirectedWeightedGraph<>(DefaultWeightedEdge.class);
+    private static DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> buildGraph(HashMap<String,
+            ArrayList<String>> connectionsContent, HashMap<String, ArrayList<String>> locationsContent, int heuristic) {
+        DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph =
+                new DefaultDirectedWeightedGraph<>(DefaultWeightedEdge.class);
         double edgeWeight;
         for(HashMap.Entry<String, ArrayList<String>> entry : connectionsContent.entrySet()) {
             String startingVertex = entry.getKey();
@@ -219,7 +211,8 @@ public class Main {
                     DefaultWeightedEdge edge = graph.addEdge(startingVertex, value);
                     // for the "fewest links" heuristic, the only edge weights are 1, so need to take that into account
                     if(heuristic == 0) {
-                        edgeWeight = euclideanDistance(locationsContent.get(startingVertex), locationsContent.get(value));
+                        edgeWeight = euclideanDistance(locationsContent.get(startingVertex),
+                                locationsContent.get(value));
                         graph.setEdgeWeight(edge, edgeWeight);
                     } else {
                         graph.setEdgeWeight(edge, 1);
@@ -229,18 +222,13 @@ public class Main {
                 }
             }
         }
-        // debugging : printing newly created graph's edges
-//        Set<DefaultWeightedEdge> edges = graph.edgeSet();
-//
-//        for (DefaultWeightedEdge e : edges) {
-//            System.out.println((String.format("\"%s\" -> \"%s\"", graph.getEdgeSource(e), graph.getEdgeTarget(e))));
-//        }
 
 
         return graph;
     }
 
-    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, HashMap<String, ArrayList<String>> locationsContent, String startCity, String endCity, int heuristic, int solutionType) {
+    private static void aStarAlgorithm(DefaultDirectedWeightedGraph<String, DefaultWeightedEdge> graph, HashMap<String,
+            ArrayList<String>> locationsContent, String startCity, String endCity, int heuristic, int solutionType) {
         HeuristicComparator comparator = new HeuristicComparator();
         PriorityQueue<QueueNode> open = new PriorityQueue<>(30, comparator);
         ArrayList<QueueNode> closed = new ArrayList<>();
@@ -251,11 +239,6 @@ public class Main {
         path.add(startingNode);
         startingNode.setPath(path);
         open.add(startingNode);
-
-        /* testing this out
-        adding path pathway, and at beginning of each while loop once we've got the open node
-        I check if the edge between the last node in "path" and this new node exist
-        if not, that means we've backtracked and I keep removing from "path" until that path exists */
 
         // pop value from Priority Queue (me.markmoussa.aiproject1.QueueNode)
         // checking if empty to know when to stop
@@ -274,8 +257,8 @@ public class Main {
                 }
                 break;
             }
-            // This differs from open because it takes the QueueNodes from the edges of the newly popped node and figures out
-            // which node has the min f-value so it can go into the open queue
+            // This differs from open because it takes the QueueNodes from the edges of the newly popped node
+            // and figures out which node has the min f-value so it can go into the open queue
             PriorityQueue<QueueNode> toGoToOpen = new PriorityQueue<>(11, comparator);
             // looping over edges of popped node to see which node we can go to next
             // creating list of the possible nodes current node can go to
@@ -286,17 +269,20 @@ public class Main {
                 // checking if possible node has any edges it can go to or if it's a dead end
                 if(!(graph.outgoingEdgesOf(newCityName).isEmpty())) {
                     if(heuristic == 0) {
-                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + straightLineHeuristic(locationsContent, newCityName, endCity));
-                        // supressing warning for now because YOLO
+                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG ,
+                                newG + straightLineHeuristic(locationsContent, newCityName, endCity));
+                        // warning is not applicable, so suppressing it
                         @SuppressWarnings("unchecked")
                         LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
                         newNodePath.add(newNode);
                         newNode.setPath(newNodePath);
                         toGoToOpen.add(newNode);
                     } else {
-                        // fewest links heuristic is literally just adding 1 to the distance traveled for some reason, so just
-                        // adding 1 instead of making a whole other function
-                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG , newG + 1);
+                        // fewest links heuristic is literally just adding 1 to the distance traveled for some reason,
+                        // so just adding 1 instead of making a whole other function
+                        QueueNode newNode = new QueueNode(newCityName, graph.outgoingEdgesOf(newCityName), newG ,
+                                newG + 1);
+                        // warning is not applicable, so suppressing it
                         @SuppressWarnings("unchecked")
                         LinkedList<QueueNode> newNodePath = (LinkedList<QueueNode>) node.getPath().clone();
                         newNodePath.add(newNode);
@@ -310,8 +296,6 @@ public class Main {
             boolean nodePresentInClosed;
             boolean nodePresentInOpen;
             boolean flag = true;
-            // while(flag) {
-            // debugging this
             while(!(toGoToOpen.isEmpty())) {
                 QueueNode newNode;
                 // getting node with min f-value from toGoToOpen priority queue
@@ -321,8 +305,8 @@ public class Main {
                     flag = false;
                     break;
                 }
-                // g is set to take the distance from previous node and add it to edge weight to get from previous node to it
-                // checking if possible node is in closed or already in open
+                // g is set to take the distance from previous node and add it to edge weight to get from previous
+                // node to it checking if possible node is in closed or already in open
                 nodePresentInClosed = false;
                 for(QueueNode j : closed) {
                     if(j.getVertex().equals(newNode.getVertex())) {
@@ -343,7 +327,8 @@ public class Main {
                 }
             }
 
-            // checking if current node is in closed (this time so we don't add it to closed a million times and mess up the path)
+            // checking if current node is in closed (this time so we don't add it to closed a million times and
+            // mess up the path)
             nodePresentInClosed = false;
             for(QueueNode i : closed) {
                 if(i.getVertex().equals(node.getVertex())) {
@@ -357,7 +342,8 @@ public class Main {
     }
 
     // honestly just a wrapper around the euclidean distance function
-    private static double straightLineHeuristic(HashMap<String, ArrayList<String>> locationsContent, String source, String target) {
+    private static double straightLineHeuristic(HashMap<String, ArrayList<String>> locationsContent,
+                                                String source, String target) {
         return euclideanDistance(locationsContent.get(source), locationsContent.get(target));
     }
 
